@@ -22,6 +22,16 @@ const shortLinks = [
     "https://youtube.com/shorts/E6IizYXi5gI?si=WRQMjs0sxd9JOtCv",
     "https://youtube.com/shorts/FwOXZfK1iYo?si=tWCPJgR0SqWfFLmr",
     "https://youtube.com/shorts/hIg4MxRBhO4?si=nmSYhWCejwIk_-Jh",
+    "https://youtube.com/shorts/LQTTefve4sI?si=pW5Js9p-Uj2zIsZN",
+    "https://youtube.com/shorts/e3wcvibw4bA?si=iIEPKYZGKEA9OfOG",
+    "https://youtube.com/shorts/IMf7nY3vVhQ?si=5wl0yC3u55jHzMgK",
+    "https://youtube.com/shorts/hA7wpKmzxCo?si=l22SXkym-SjLWJf2",
+    "https://youtube.com/shorts/YysaAQ3HWXE?si=WT38-GWERJcBOKoa",
+    "https://youtube.com/shorts/QDPNuWcAcOY?si=ZE5HAJSCLP6PsTYi",
+    "https://youtube.com/shorts/KAq4LDWh-aw?si=SVndP7n21IECAZqy",
+    "https://youtube.com/shorts/aUGAOk0N0yY?si=TDlzjSgHw4jpeJG2",
+    "https://youtube.com/shorts/JiDBUIsSimo?si=DGF6Rmb9jmnHRTXI",
+    "https://youtube.com/shorts/I3gxyPuVdAc?si=X1ZLLlXcmznJyOx_",
 ];
 
 const watchedIds = new Set();
