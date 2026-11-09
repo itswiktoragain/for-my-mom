@@ -48,3 +48,54 @@ body {
     margin: 0;
     cursor: pointer;
 }
+
+.short-card.is-shaking img {
+    animation: thumbnail-shake 0.08s linear infinite;
+}
+
+.short-info {
+    position: absolute;
+    z-index: 2;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    max-height: 85%;
+    overflow: auto;
+    padding: 12px;
+    background: rgb(0 0 0 / 88%);
+    color: white;
+    font: 14px/1.4 system-ui, sans-serif;
+}
+
+.short-info[hidden] {
+    display: none;
+}
+
+.short-info-close {
+    float: right;
+    margin-left: 8px;
+    cursor: pointer;
+}
+
+.short-info dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 10px;
+    margin: 8px 0 0;
+}
+
+.short-info dt {
+    font-weight: 600;
+}
+
+.short-info dd {
+    margin: 0;
+}
+
+@keyframes thumbnail-shake {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    20% { transform: translate(-5px, 3px) rotate(-1.5deg); }
+    40% { transform: translate(5px, -3px) rotate(1.5deg); }
+    60% { transform: translate(-4px, -3px) rotate(-1deg); }
+    80% { transform: translate(4px, 3px) rotate(1deg); }
+}
