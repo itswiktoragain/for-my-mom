@@ -25,7 +25,10 @@ const shortLinks = [
 const watchedIds = new Set();
 const writeQueues = new Map();
 const writeVersions = new Map();
+const addedAtById = new Map();
 let watchedDatabase;
+const statsApi = "https://yt.chocolatemoo53.com/api/v1";
+const holdDuration = 5000;
 
 const status = document.createElement("p");
 status.setAttribute("role", "status");
@@ -35,12 +38,43 @@ document.body.prepend(status);
 
 function openWatchedDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open("shorts-watchlist", 1);
+        const request = indexedDB.open("shorts-watchlist", 2);
         request.onupgradeneeded = () => {
-            request.result.createObjectStore("watched", { keyPath: "id" });
+            const database = request.result;
+            if (!database.objectStoreNames.contains("watched")) {
+                database.createObjectStore("watched", { keyPath: "id" });
+            }
+            if (!database.objectStoreNames.contains("videos")) {
+                database.createObjectStore("videos", { keyPath: "id" });
+            }
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error || new Error("Could not open IndexedDB."));
+    });
+}
+
+function recordAddedDates() {
+    return new Promise((resolve, reject) => {
+        const transaction = watchedDatabase.transaction("videos", "readwrite");
+        const store = transaction.objectStore("videos");
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            for (const record of request.result) {
+                addedAtById.set(record.id, record.addedAt);
+            }
+            for (const id of renderedIds) {
+                if (!addedAtById.has(id)) {
+                    const addedAt = Date.now();
+                    addedAtById.set(id, addedAt);
+                    store.add({ id, addedAt });
+                }
+            }
+        };
+        request.onerror = () => reject(request.error || new Error("Could not read video dates."));
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error("Could not save video dates."));
+        transaction.onabort = () => reject(transaction.error || new Error("Could not save video dates."));
     });
 }
 
@@ -109,6 +143,60 @@ function getVideoId(link) {
     return id;
 }
 
+async function fetchStats(endpoint) {
+    const response = await fetch(`${statsApi}/${endpoint}`);
+    if (!response.ok) throw new Error(`Request failed (${response.status}).`);
+    return response.json();
+}
+
+function formatNumber(value) {
+    return Number.isFinite(value) ? new Intl.NumberFormat().format(value) : "Unavailable";
+}
+
+function formatDate(value) {
+    return value ? new Date(value).toLocaleString() : "Unavailable";
+}
+
+function addInfoRow(list, label, value) {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const detail = document.createElement("dd");
+    detail.textContent = value;
+    list.append(term, detail);
+}
+
+function showVideoInfo(id, panel, details) {
+    const requestVersion = Number(panel.dataset.requestVersion || 0) + 1;
+    panel.dataset.requestVersion = requestVersion;
+    details.replaceChildren();
+    addInfoRow(details, "Added to list", formatDate(addedAtById.get(id)));
+    addInfoRow(details, "Stats", "Loading…");
+    panel.hidden = false;
+
+    Promise.allSettled([
+        fetchStats(`videos/${encodeURIComponent(id)}`),
+        fetchStats(`comments/${encodeURIComponent(id)}`)
+    ]).then(([videoResult, commentsResult]) => {
+        if (panel.hidden || Number(panel.dataset.requestVersion) !== requestVersion) return;
+        details.replaceChildren();
+        addInfoRow(details, "Added to list", formatDate(addedAtById.get(id)));
+        if (videoResult.status === "fulfilled") {
+            addInfoRow(details, "Posted", formatDate(videoResult.value.published * 1000));
+            addInfoRow(details, "Views", formatNumber(videoResult.value.viewCount));
+            addInfoRow(details, "Likes", formatNumber(videoResult.value.likeCount));
+        } else {
+            addInfoRow(details, "Posted / views / likes", "Unavailable right now");
+            console.error(`Could not load video details for ${id}:`, videoResult.reason);
+        }
+        if (commentsResult.status === "fulfilled") {
+            addInfoRow(details, "Comments", formatNumber(commentsResult.value.commentCount));
+        } else {
+            addInfoRow(details, "Comments", "Unavailable right now");
+            console.error(`Could not load comment count for ${id}:`, commentsResult.reason);
+        }
+    });
+}
+
 const fragment = document.createDocumentFragment();
 const renderedIds = new Set();
 
@@ -137,6 +225,69 @@ for (const link of shortLinks) {
         }
     });
     anchor.append(image);
+
+    const infoPanel = document.createElement("aside");
+    infoPanel.className = "short-info";
+    infoPanel.setAttribute("aria-label", "Video information");
+    infoPanel.hidden = true;
+    const infoTitle = document.createElement("strong");
+    infoTitle.textContent = "Video information";
+    const infoDetails = document.createElement("dl");
+    const closeInfo = document.createElement("button");
+    closeInfo.type = "button";
+    closeInfo.className = "short-info-close";
+    closeInfo.textContent = "Close";
+    closeInfo.addEventListener("click", () => {
+        infoPanel.hidden = true;
+        infoPanel.dataset.requestVersion = String(Number(infoPanel.dataset.requestVersion || 0) + 1);
+    });
+    infoPanel.append(infoTitle, closeInfo, infoDetails);
+
+    let holdTimer;
+    let activePointerId;
+    let startX;
+    let startY;
+    let holdTriggered = false;
+
+    function stopHold() {
+        clearTimeout(holdTimer);
+        card.classList.remove("is-shaking");
+        activePointerId = undefined;
+    }
+
+    anchor.addEventListener("pointerdown", event => {
+        if (event.pointerType === "mouse" && event.button !== 0 && event.button !== 2) return;
+        stopHold();
+        activePointerId = event.pointerId;
+        startX = event.clientX;
+        startY = event.clientY;
+        holdTriggered = false;
+        card.classList.add("is-shaking");
+        holdTimer = setTimeout(() => {
+            holdTriggered = true;
+            card.classList.remove("is-shaking");
+            showVideoInfo(id, infoPanel, infoDetails);
+        }, holdDuration);
+    });
+
+    document.addEventListener("pointermove", event => {
+        if (event.pointerId !== activePointerId) return;
+        if (Math.hypot(event.clientX - startX, event.clientY - startY) > 12) stopHold();
+    });
+    document.addEventListener("pointerup", event => {
+        if (event.pointerId === activePointerId) stopHold();
+    });
+    document.addEventListener("pointercancel", event => {
+        if (event.pointerId === activePointerId) stopHold();
+    });
+    anchor.addEventListener("contextmenu", event => event.preventDefault());
+    anchor.addEventListener("click", event => {
+        if (holdTriggered) {
+            event.preventDefault();
+            event.stopPropagation();
+            holdTriggered = false;
+        }
+    });
 
     const label = document.createElement("label");
     label.setAttribute("aria-label", "Mark Short as watched");
@@ -176,7 +327,7 @@ for (const link of shortLinks) {
     });
 
     label.append(checkbox);
-    card.append(anchor, label);
+    card.append(anchor, label, infoPanel);
     fragment.append(card);
 }
 
@@ -184,8 +335,8 @@ document.body.append(fragment);
 
 openWatchedDatabase().then(database => {
     watchedDatabase = database;
-    return loadWatchedIds();
-}).then(ids => {
+    return Promise.all([loadWatchedIds(), recordAddedDates()]);
+}).then(([ids]) => {
     ids.forEach(id => watchedIds.add(id));
     document.querySelectorAll(".short-card input[type=checkbox]").forEach(checkbox => {
         checkbox.disabled = false;
