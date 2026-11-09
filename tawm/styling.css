@@ -1,0 +1,50 @@
+/* uh */
+/* Max width */
+img {
+    flex: 1 1 300px;
+    min-width: 0;
+    max-width: 100%;
+    /* No gap windaah */
+    margin: 0;
+}
+body {
+    /* Plex */
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+}
+
+.short-card {
+    flex: 1 1 300px;
+    min-width: 0;
+    position: relative;
+}
+
+.short-card a {
+    display: block;
+}
+
+.short-card img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    object-fit: cover;
+}
+
+.short-card label {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    cursor: pointer;
+}
+
+.short-card input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+}
