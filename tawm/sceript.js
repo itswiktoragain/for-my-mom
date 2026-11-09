@@ -22,8 +22,62 @@ const shortLinks = [
     "https://youtube.com/shorts/E6IizYXi5gI?si=WRQMjs0sxd9JOtCv",
 ];
 
-const watchedKey = "shorts-watched";
-const watchedIds = new Set(JSON.parse(localStorage.getItem(watchedKey) || "[]"));
+const watchedIds = new Set();
+const writeQueues = new Map();
+const writeVersions = new Map();
+let watchedDatabase;
+
+const status = document.createElement("p");
+status.setAttribute("role", "status");
+status.setAttribute("aria-live", "polite");
+status.hidden = true;
+document.body.prepend(status);
+
+function openWatchedDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("shorts-watchlist", 1);
+        request.onupgradeneeded = () => {
+            request.result.createObjectStore("watched", { keyPath: "id" });
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error("Could not open IndexedDB."));
+    });
+}
+
+function loadWatchedIds() {
+    return new Promise((resolve, reject) => {
+        const transaction = watchedDatabase.transaction("watched", "readonly");
+        const request = transaction.objectStore("watched").getAll();
+        request.onsuccess = () => resolve(request.result.map(record => record.id));
+        request.onerror = () => reject(request.error || new Error("Could not read watched states."));
+        transaction.onabort = () => reject(transaction.error || new Error("Could not read watched states."));
+    });
+}
+
+function writeWatchedState(id, isWatched) {
+    return new Promise((resolve, reject) => {
+        const transaction = watchedDatabase.transaction("watched", "readwrite");
+        const store = transaction.objectStore("watched");
+        if (isWatched) {
+            store.put({ id });
+        } else {
+            store.delete(id);
+        }
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error || new Error("Could not save watched state."));
+        transaction.onabort = () => reject(transaction.error || new Error("Could not save watched state."));
+    });
+}
+
+function queueWatchedState(id, isWatched) {
+    const previousWrite = writeQueues.get(id) || Promise.resolve();
+    const write = previousWrite.catch(() => {}).then(() => writeWatchedState(id, isWatched));
+    writeQueues.set(id, write);
+    write.finally(() => {
+        if (writeQueues.get(id) === write) writeQueues.delete(id);
+    }).catch(() => {});
+    return write;
+}
 
 function getVideoId(link) {
     let url;
@@ -53,10 +107,6 @@ function getVideoId(link) {
         return null;
     }
     return id;
-}
-
-function saveWatchedIds() {
-    localStorage.setItem(watchedKey, JSON.stringify([...watchedIds]));
 }
 
 const fragment = document.createDocumentFragment();
@@ -92,14 +142,37 @@ for (const link of shortLinks) {
     label.setAttribute("aria-label", "Mark Short as watched");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
+    checkbox.dataset.videoId = id;
     checkbox.checked = watchedIds.has(id);
+    checkbox.disabled = !watchedDatabase;
     checkbox.addEventListener("change", () => {
-        if (checkbox.checked) {
+        const wasWatched = !checkbox.checked;
+        const isWatched = checkbox.checked;
+        const version = (writeVersions.get(id) || 0) + 1;
+        writeVersions.set(id, version);
+
+        if (isWatched) {
             watchedIds.add(id);
         } else {
             watchedIds.delete(id);
         }
-        saveWatchedIds();
+        queueWatchedState(id, isWatched).then(() => {
+            if (writeVersions.get(id) === version) {
+                status.textContent = "";
+                status.hidden = true;
+            }
+        }).catch(error => {
+            if (writeVersions.get(id) === version) {
+                checkbox.checked = wasWatched;
+                if (wasWatched) {
+                    watchedIds.add(id);
+                } else {
+                    watchedIds.delete(id);
+                }
+                status.textContent = `Could not save watched state: ${error.message}`;
+                status.hidden = false;
+            }
+        });
     });
 
     label.append(checkbox);
@@ -108,3 +181,17 @@ for (const link of shortLinks) {
 }
 
 document.body.append(fragment);
+
+openWatchedDatabase().then(database => {
+    watchedDatabase = database;
+    return loadWatchedIds();
+}).then(ids => {
+    ids.forEach(id => watchedIds.add(id));
+    document.querySelectorAll(".short-card input[type=checkbox]").forEach(checkbox => {
+        checkbox.disabled = false;
+        checkbox.checked = watchedIds.has(checkbox.dataset.videoId);
+    });
+}).catch(error => {
+    status.textContent = `IndexedDB is unavailable; watched states cannot be loaded or saved: ${error.message}`;
+    status.hidden = false;
+});
