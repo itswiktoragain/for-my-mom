@@ -21,6 +21,7 @@ const shortLinks = [
     "https://youtube.com/shorts/KhBTzagYZHM?si=2TXeT5WxTp47S_K7",
     "https://youtube.com/shorts/E6IizYXi5gI?si=WRQMjs0sxd9JOtCv",
     "https://youtube.com/shorts/FwOXZfK1iYo?si=tWCPJgR0SqWfFLmr",
+    "https://youtube.com/shorts/hIg4MxRBhO4?si=nmSYhWCejwIk_-Jh",
 ];
 
 const watchedIds = new Set();
