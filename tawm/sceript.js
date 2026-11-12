@@ -45,6 +45,23 @@ const shortLinks = [
     "https://youtube.com/shorts/uU6_BYlYUN4?si=BzCYznhGiFpOmg5a",
     "https://youtube.com/shorts/AFdeQRw020k?si=1FXETMFAE6XyJEgy",
     "https://youtube.com/shorts/ciqLzMMg4Z8?si=qVQ-qInctL4EqsXx",
+    "https://youtube.com/shorts/Yn2wYxY5vJ8?si=Uja10Qn2iMzfVbXC",
+    "https://youtube.com/shorts/K51RqlPJOCE?si=tBrvmkfdvWvnnn3v",
+    "https://youtube.com/shorts/LQt3LEzu73E?si=xtwLzqNjIbYlexNl",
+    "https://youtube.com/shorts/JCxmaF43uGw?si=Ogl0sOyCz_QX5So9",
+    "https://youtube.com/shorts/eSuFO_1zVyQ?si=FAREAamaHAQGAKav",
+    "https://youtube.com/shorts/QScR-vUMCOI?si=26WF8vjyY_ZmoH2-",
+    "https://youtube.com/shorts/1jZpWYf5Nxo?si=WmZtVmyVJH_RZVWL",
+    "https://youtube.com/shorts/n3CyZmvxid4?si=yi2R8hQ2sSCzQ9qq",
+    "https://youtube.com/shorts/GktHKJ0Acww?si=tUbYAMIzVSewjzpz",
+    "https://youtube.com/shorts/BXqUiBrGA7E?si=Z398qVR9VRQUmMQ4",
+    "https://youtube.com/shorts/vaJqBcwdklA?si=c85N3tyxNkfohbr8",
+    "https://youtube.com/shorts/xAgzMrB-kLw?si=jRHtfHS1R4zQ5Zyd",
+    "https://youtube.com/shorts/0e-QQlnFVKE?si=DaqX5s8c0IaZQi78",
+    "https://youtube.com/shorts/O6maargYPuo?si=qeeVbq0BUh8QMAvJ",
+    "https://youtube.com/shorts/sd_nVqfFyW8?si=tF85AyMl0tbSpj_3",
+    "https://youtube.com/shorts/SuhaLvf3weE?si=bRx7fuIKoRYAaMcP",
+    "https://youtube.com/shorts/Oq9zo-Da7oo?si=ANAxwZj44NxgbaCM",
 ];
 
 const watchedIds = new Set();
