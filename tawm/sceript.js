@@ -155,36 +155,6 @@ function queueWatchedState(id, isWatched) {
     return write;
 }
 
-function getVideoId(link) {
-    let url;
-    try {
-        url = new URL(link);
-    } catch {
-        console.warn("Skipping invalid YouTube link:", link);
-        return null;
-    }
-
-    const host = url.hostname.toLowerCase();
-    const path = url.pathname.split("/").filter(Boolean);
-    let id = null;
-
-    if (host === "youtu.be") {
-        id = path[0];
-    } else if (host === "youtube.com" || host.endsWith(".youtube.com")) {
-        if (path[0] === "shorts" || path[0] === "embed") {
-            id = path[1];
-        } else if (url.pathname === "/watch") {
-            id = url.searchParams.get("v");
-        }
-    }
-
-    if (!id || !/^[\w-]{11}$/.test(id)) {
-        console.warn("Skipping YouTube link with an invalid video ID:", link);
-        return null;
-    }
-    return id;
-}
-
 async function fetchStats(endpoint) {
     const response = await fetch(`${statsApi}/${endpoint}`);
     if (!response.ok) throw new Error(`Request failed (${response.status}).`);
@@ -243,7 +213,7 @@ const fragment = document.createDocumentFragment();
 const renderedIds = new Set();
 
 for (const link of shortLinks) {
-    const id = getVideoId(link);
+    const id = link.split("/shorts/")[1]?.split(/[?#]/)[0];
     if (!id || renderedIds.has(id)) continue;
     renderedIds.add(id);
 
@@ -251,7 +221,7 @@ for (const link of shortLinks) {
     card.className = "short-card";
 
     const anchor = document.createElement("a");
-    anchor.href = `https://www.youtube.com/shorts/${id}`;
+    anchor.href = link;
     anchor.target = "_blank";
     anchor.rel = "noopener noreferrer";
 
